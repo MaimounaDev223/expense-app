@@ -131,12 +131,15 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          await Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const AddExpensePage()),
           );
+          _loadExpenses();
         },
+        tooltip: 'Ajouter une dépense',
+        child: const Icon(Icons.add),
       ),
     );
   }
