@@ -71,6 +71,12 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
   Future<void> _loadCategories() async {
     final response = await http.get(
       Uri.parse('http://127.0.0.1:8000/api/categories'),
