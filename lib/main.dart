@@ -59,6 +59,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   int _counter = 0;
   List<dynamic> _categories = [];
+  List<dynamic> _expenses = [];
 
   void _incrementCounter() {
     setState(() {
@@ -74,7 +75,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _loadExpenses();
   }
 
   Future<void> _loadCategories() async {
@@ -84,6 +85,16 @@ class _MyHomePageState extends State<MyHomePage> {
     final List<dynamic> data = jsonDecode(response.body);
     setState(() {
       _categories = data;
+    });
+  }
+
+  Future<void> _loadExpenses() async {
+    final response = await http.get(
+      Uri.parse('http://127.0.0.1:8000/api/expenses'),
+    );
+    final List<dynamic> data = jsonDecode(response.body);
+    setState(() {
+      _expenses = data;
     });
   }
 
@@ -107,13 +118,16 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
 
       body: ListView.builder(
-        itemCount: _categories.length,
+        itemCount: _expenses.length,
         itemBuilder: (context, index) {
-          final category = _categories[index];
-          return ListTile(title: Text(category['name']));
+          final expense = _expenses[index];
+          return ListTile(
+            title: Text(expense['description'] ?? 'Sans description'),
+            subtitle: Text(expense['category']?['name'] ?? 'Sans catégorie'),
+            trailing: Text(expense['amount'].toString()),
+          );
         },
       ),
-
       floatingActionButton: FloatingActionButton(
         onPressed: _loadCategories,
         tooltip: 'Increment',
