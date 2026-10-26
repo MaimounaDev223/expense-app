@@ -98,6 +98,92 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _expenses = data;
     });
+
+    Future<void> _deleteExpense(int id) async {
+      final response = await http.delete(
+        Uri.parse('http://127.0.0.1:8000/api/expenses/$id'),
+        headers: {'Accept': 'application/json'},
+      );
+
+      if (!mounted) return;
+
+      if (response.statusCode == 204) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Dépense supprimée')));
+        _loadExpenses();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur lors de la suppression')),
+        );
+      }
+    }
+
+    Future<void> _confirmDelete(int id) async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Supprimer cette dépense ?'),
+          content: const Text('Cette action est définitive.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Annuler'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Supprimer'),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmed == true) {
+        _deleteExpense(id);
+      }
+    }
+  }
+
+  Future<void> _deleteExpense(int id) async {
+    final response = await http.delete(
+      Uri.parse('http://127.0.0.1:8000/api/expenses/$id'),
+      headers: {'Accept': 'application/json'},
+    );
+
+    if (!mounted) return;
+
+    if (response.statusCode == 204) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Dépense supprimée')));
+      _loadExpenses();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de la suppression')),
+      );
+    }
+  }
+
+  Future<void> _confirmDelete(int id) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer cette dépense ?'),
+        content: const Text('Cette action est définitive.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Supprimer'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      _deleteExpense(id);
+    }
   }
 
   @override
@@ -126,7 +212,16 @@ class _MyHomePageState extends State<MyHomePage> {
           return ListTile(
             title: Text(expense['description'] ?? 'Sans description'),
             subtitle: Text(expense['category']?['name'] ?? 'Sans catégorie'),
-            trailing: Text(expense['amount'].toString()),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(expense['amount'].toString()),
+                IconButton(
+                  icon: const Icon(Icons.delete),
+                  onPressed: () => _confirmDelete(expense['id'] as int),
+                ),
+              ],
+            ),
           );
         },
       ),
