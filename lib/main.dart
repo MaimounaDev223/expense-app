@@ -98,49 +98,6 @@ class _MyHomePageState extends State<MyHomePage> {
     setState(() {
       _expenses = data;
     });
-
-    Future<void> _deleteExpense(int id) async {
-      final response = await http.delete(
-        Uri.parse('http://127.0.0.1:8000/api/expenses/$id'),
-        headers: {'Accept': 'application/json'},
-      );
-
-      if (!mounted) return;
-
-      if (response.statusCode == 204) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Dépense supprimée')));
-        _loadExpenses();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erreur lors de la suppression')),
-        );
-      }
-    }
-
-    Future<void> _confirmDelete(int id) async {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Supprimer cette dépense ?'),
-          content: const Text('Cette action est définitive.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Annuler'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Supprimer'),
-            ),
-          ],
-        ),
-      );
-
-      if (confirmed == true) {
-        _deleteExpense(id);
-      }
-    }
   }
 
   Future<void> _deleteExpense(int id) async {
@@ -186,6 +143,14 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  double get _total {
+    double sum = 0;
+    for (final expense in _expenses) {
+      sum += double.parse(expense['amount'].toString());
+    }
+    return sum;
+  }
+
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -205,25 +170,40 @@ class _MyHomePageState extends State<MyHomePage> {
         title: Text(widget.title),
       ),
 
-      body: ListView.builder(
-        itemCount: _expenses.length,
-        itemBuilder: (context, index) {
-          final expense = _expenses[index];
-          return ListTile(
-            title: Text(expense['description'] ?? 'Sans description'),
-            subtitle: Text(expense['category']?['name'] ?? 'Sans catégorie'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(expense['amount'].toString()),
-                IconButton(
-                  icon: const Icon(Icons.delete),
-                  onPressed: () => _confirmDelete(expense['id'] as int),
-                ),
-              ],
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'Total : ${_total.toStringAsFixed(2)}',
+              style: Theme.of(context).textTheme.headlineSmall,
             ),
-          );
-        },
+          ),
+          Expanded(
+            child: ListView.builder(
+              itemCount: _expenses.length,
+              itemBuilder: (context, index) {
+                final expense = _expenses[index];
+                return ListTile(
+                  title: Text(expense['description'] ?? 'Sans description'),
+                  subtitle: Text(
+                    expense['category']?['name'] ?? 'Sans catégorie',
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(expense['amount'].toString()),
+                      IconButton(
+                        icon: const Icon(Icons.delete),
+                        onPressed: () => _confirmDelete(expense['id'] as int),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
