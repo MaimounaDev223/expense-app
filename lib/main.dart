@@ -7,7 +7,7 @@ import 'dart:convert';
 
 import 'login_page.dart';
 import 'api_client.dart';
-
+import 'token_storage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -21,6 +21,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -39,7 +40,32 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const LoginPage(nextPage: MyHomePage(title: 'Mes dépenses')),
+      home: const AuthGate(),
+    );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String?>(
+      future: TokenStorage.read(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        const home = MyHomePage(title: 'Mes dépenses');
+
+        if (snapshot.data != null) {
+          return home;
+        }
+        return const LoginPage(nextPage: home);
+      },
     );
   }
 }
@@ -102,6 +128,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
     if (!mounted) return;
 
+    if (response.statusCode == 401) {
+      await TokenStorage.clear();
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const AuthGate()),
+      );
+      return;
+    }
+
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
       setState(() {
@@ -155,6 +191,20 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> _logout() async {
+    await http.post(
+      Uri.parse('http://127.0.0.1:8000/api/logout'),
+      headers: await authHeaders(),
+    );
+    await TokenStorage.clear();
+
+    if (!mounted) return;
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const AuthGate()),
+    );
+  }
+
   double get _total {
     double sum = 0;
     for (final expense in _expenses) {
@@ -180,6 +230,13 @@ class _MyHomePageState extends State<MyHomePage> {
         // Here we take the value from the MyHomePage object that was created by
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Se déconnecter',
+            onPressed: _logout,
+          ),
+        ],
       ),
 
       body: Column(
