@@ -5,6 +5,10 @@ import 'add_expense_page.dart';
 
 import 'dart:convert';
 
+import 'login_page.dart';
+import 'api_client.dart';
+
+
 void main() {
   runApp(const MyApp());
 }
@@ -35,7 +39,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: .fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const MyHomePage(title: 'Mes dépenses'),
+      home: const LoginPage(nextPage: MyHomePage(title: 'Mes dépenses')),
     );
   }
 }
@@ -93,17 +97,25 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<void> _loadExpenses() async {
     final response = await http.get(
       Uri.parse('http://127.0.0.1:8000/api/expenses'),
+      headers: await authHeaders(),
     );
-    final List<dynamic> data = jsonDecode(response.body);
-    setState(() {
-      _expenses = data;
-    });
+
+    if (!mounted) return;
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      setState(() {
+        _expenses = data;
+      });
+    } else {
+      debugPrint('Erreur ${response.statusCode} : ${response.body}');
+    }
   }
 
   Future<void> _deleteExpense(int id) async {
     final response = await http.delete(
       Uri.parse('http://127.0.0.1:8000/api/expenses/$id'),
-      headers: {'Accept': 'application/json'},
+      headers: await authHeaders(),
     );
 
     if (!mounted) return;

@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'api_client.dart';
+
 
 class AddExpensePage extends StatefulWidget {
   const AddExpensePage({super.key});
@@ -40,12 +42,8 @@ class _AddExpensePageState extends State<AddExpensePage> {
 
     final response = await http.post(
       Uri.parse('http://127.0.0.1:8000/api/expenses'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
+      headers: await authHeaders(),
       body: jsonEncode({
-        'user_id': 1,
         'category_id': _selectedCategoryId,
         'amount': _amountController.text,
         'description': _descriptionController.text,
