@@ -268,6 +268,16 @@ class _MyHomePageState extends State<MyHomePage> {
                       ),
                     ],
                   ),
+
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => AddExpensePage(expense: expense),
+                      ),
+                    );
+                    _loadExpenses();
+                  },
                 );
               },
             ),

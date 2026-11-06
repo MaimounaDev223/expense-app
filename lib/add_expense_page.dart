@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'api_client.dart';
 
-
 class AddExpensePage extends StatefulWidget {
-  const AddExpensePage({super.key});
+  final Map<String, dynamic>? expense;
+
+  const AddExpensePage({super.key, this.expense});
 
   @override
   State<AddExpensePage> createState() => _AddExpensePageState();
@@ -18,10 +19,25 @@ class _AddExpensePageState extends State<AddExpensePage> {
   int? _selectedCategoryId;
   bool _isSaving = false;
 
+  bool get _isEditing => widget.expense != null;
+
   @override
   void initState() {
     super.initState();
+    final expense = widget.expense;
+    if (expense != null) {
+      _amountController.text = expense['amount'].toString();
+      _descriptionController.text = expense['description'] ?? '';
+      _selectedCategoryId = expense['category_id'] as int?;
+    }
     _loadCategories();
+  }
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadCategories() async {
@@ -40,16 +56,29 @@ class _AddExpensePageState extends State<AddExpensePage> {
       _isSaving = true;
     });
 
-    final response = await http.post(
-      Uri.parse('http://127.0.0.1:8000/api/expenses'),
-      headers: await authHeaders(),
-      body: jsonEncode({
-        'category_id': _selectedCategoryId,
-        'amount': _amountController.text,
-        'description': _descriptionController.text,
-        'spent_at': DateTime.now().toIso8601String(),
-      }),
-    );
+    final expense = widget.expense;
+    final body = jsonEncode({
+      'category_id': _selectedCategoryId,
+      'amount': _amountController.text,
+      'description': _descriptionController.text,
+      'spent_at': expense?['spent_at'] ?? DateTime.now().toIso8601String(),
+    });
+    final headers = await authHeaders();
+
+    final http.Response response;
+    if (expense != null) {
+      response = await http.put(
+        Uri.parse('http://127.0.0.1:8000/api/expenses/${expense['id']}'),
+        headers: headers,
+        body: body,
+      );
+    } else {
+      response = await http.post(
+        Uri.parse('http://127.0.0.1:8000/api/expenses'),
+        headers: headers,
+        body: body,
+      );
+    }
 
     if (!mounted) return;
 
@@ -57,9 +86,13 @@ class _AddExpensePageState extends State<AddExpensePage> {
       _isSaving = false;
     });
 
-    if (response.statusCode == 201) {
+    if (response.statusCode == 200 || response.statusCode == 201) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Dépense enregistrée')),
+        SnackBar(
+          content: Text(
+            _isEditing ? 'Dépense modifiée' : 'Dépense enregistrée',
+          ),
+        ),
       );
       Navigator.pop(context);
     } else {
@@ -73,8 +106,10 @@ class _AddExpensePageState extends State<AddExpensePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nouvelle dépense')),
-      body: Padding(
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Modifier la dépense' : 'Nouvelle dépense'),
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
@@ -88,6 +123,7 @@ class _AddExpensePageState extends State<AddExpensePage> {
               decoration: const InputDecoration(labelText: 'Description'),
             ),
             DropdownButtonFormField<int>(
+              initialValue: _selectedCategoryId,
               decoration: const InputDecoration(labelText: 'Catégorie'),
               items: _categories
                   .map<DropdownMenuItem<int>>(

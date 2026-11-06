@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import 'token_storage.dart';
+import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
   final Widget nextPage;
@@ -81,6 +82,19 @@ class _LoginPageState extends State<LoginPage> {
             ElevatedButton(
               onPressed: _isLoading ? null : _Login,
               child: Text(_isLoading ? 'Connexion...' : 'Se connecter'),
+            ),
+
+            TextButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        RegisterPage(nextPage: widget.nextPage),
+                  ),
+                );
+              },
+              child: const Text('Créer un compte'),
             ),
           ],
         ),
