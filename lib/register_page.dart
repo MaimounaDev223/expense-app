@@ -21,12 +21,13 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
   String? _error;
 
-  Future<void> _register() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+Future<void> _register() async {
+  setState(() {
+    _isLoading = true;
+    _error = null;
+  });
 
+  try {
     final response = await http.post(
       Uri.parse('http://127.0.0.1:8000/api/register'),
       headers: {
@@ -54,10 +55,18 @@ class _RegisterPageState extends State<RegisterPage> {
     } else {
       setState(() {
         _isLoading = false;
-        _error = 'Vérifiez vos informations : mot de passe de 8 caractères minimum, e-mail non utilisé';
+        _error =
+            'Vérifiez vos informations : mot de passe de 8 caractères minimum, e-mail non utilisé';
       });
     }
+  } catch (e) {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      _error = "Serveur injoignable. Vérifiez que l'API est lancée.";
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {

@@ -8,6 +8,7 @@ import 'dart:convert';
 import 'login_page.dart';
 import 'api_client.dart';
 import 'token_storage.dart';
+import 'stats_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -231,6 +232,16 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart),
+            tooltip: 'Statistiques',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const StatsPage()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Se déconnecter',

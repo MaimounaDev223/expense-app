@@ -21,12 +21,13 @@ class _LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
   String? _error;
 
-  Future<void> _Login() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  Future<void> _login() async {
+  setState(() {
+    _isLoading = true;
+    _error = null;
+  });
 
+  try {
     final response = await http.post(
       Uri.parse('http://127.0.0.1:8000/api/login'),
       headers: {
@@ -55,7 +56,14 @@ class _LoginPageState extends State<LoginPage> {
         _error = 'E-mail ou mot de passe incorrect';
       });
     }
+  } catch (e) {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = false;
+      _error = "Serveur injoignable. Vérifiez que l'API est lancée.";
+    });
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +88,7 @@ class _LoginPageState extends State<LoginPage> {
               Text(_error!, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _isLoading ? null : _Login,
+              onPressed: _isLoading ? null : _login,
               child: Text(_isLoading ? 'Connexion...' : 'Se connecter'),
             ),
 

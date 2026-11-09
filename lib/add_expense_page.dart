@@ -39,23 +39,34 @@ class _AddExpensePageState extends State<AddExpensePage> {
     _descriptionController.dispose();
     super.dispose();
   }
-
-  Future<void> _loadCategories() async {
+Future<void> _loadCategories() async {
+  try {
+    final headers = await authHeaders();
     final response = await http.get(
       Uri.parse('http://127.0.0.1:8000/api/categories'),
+      headers: headers,
     );
+
+    if (response.statusCode != 200) {
+      debugPrint('Erreur catégories ${response.statusCode} : ${response.body}');
+      return;
+    }
+
     final List<dynamic> data = jsonDecode(response.body);
     if (!mounted) return;
     setState(() {
       _categories = data;
     });
+  } catch (e) {
+    debugPrint('Impossible de charger les catégories : $e');
   }
-
+}
   Future<void> _save() async {
-    setState(() {
-      _isSaving = true;
-    });
+  setState(() {
+    _isSaving = true;
+  });
 
+  try {
     final expense = widget.expense;
     final body = jsonEncode({
       'category_id': _selectedCategoryId,
@@ -101,7 +112,18 @@ class _AddExpensePageState extends State<AddExpensePage> {
       );
       debugPrint('Erreur ${response.statusCode} : ${response.body}');
     }
+  } catch (e) {
+    if (!mounted) return;
+    setState(() {
+      _isSaving = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text("Serveur injoignable. Vérifiez que l'API est lancée."),
+      ),
+    );
   }
+}
 
   @override
   Widget build(BuildContext context) {
