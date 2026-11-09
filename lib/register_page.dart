@@ -21,52 +21,62 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
   String? _error;
 
-Future<void> _register() async {
-  setState(() {
-    _isLoading = true;
-    _error = null;
-  });
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
-  try {
-    final response = await http.post(
-      Uri.parse('http://127.0.0.1:8000/api/register'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      },
-      body: jsonEncode({
-        'name': _nameController.text,
-        'email': _emailController.text,
-        'password': _passwordController.text,
-      }),
-    );
+  Future<void> _register() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
-    if (!mounted) return;
+    try {
+      final response = await http
+          .post(
+            Uri.parse('http://127.0.0.1:8000/api/register'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+            },
+            body: jsonEncode({
+              'name': _nameController.text,
+              'email': _emailController.text,
+              'password': _passwordController.text,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
 
-    if (response.statusCode == 201) {
-      final data = jsonDecode(response.body);
-      await TokenStorage.save(data['token']);
       if (!mounted) return;
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => widget.nextPage),
-        (route) => false,
-      );
-    } else {
+
+      if (response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        await TokenStorage.save(data['token']);
+        if (!mounted) return;
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => widget.nextPage),
+          (route) => false,
+        );
+      } else {
+        setState(() {
+          _isLoading = false;
+          _error =
+              'Vérifiez vos informations : mot de passe de 8 caractères minimum, e-mail non utilisé';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
-        _error =
-            'Vérifiez vos informations : mot de passe de 8 caractères minimum, e-mail non utilisé';
+        _error = "Serveur injoignable. Vérifiez que l'API est lancée.";
       });
     }
-  } catch (e) {
-    if (!mounted) return;
-    setState(() {
-      _isLoading = false;
-      _error = "Serveur injoignable. Vérifiez que l'API est lancée.";
-    });
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -96,20 +106,11 @@ Future<void> _register() async {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _isLoading ? null : _register,
-              child: Text(_isLoading ? 'Inscription...' : 'S\'inscrire'),
+              child: Text(_isLoading ? 'Inscription...' : "S'inscrire"),
             ),
-
             TextButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        RegisterPage(nextPage: widget.nextPage),
-                  ),
-                );
-              },
-              child: const Text('Créer un compte'),
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Déjà un compte ? Se connecter'),
             ),
           ],
         ),
