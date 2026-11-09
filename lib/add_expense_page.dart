@@ -1,6 +1,8 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'api_client.dart';
 
 class AddExpensePage extends StatefulWidget {
@@ -39,91 +41,101 @@ class _AddExpensePageState extends State<AddExpensePage> {
     _descriptionController.dispose();
     super.dispose();
   }
-Future<void> _loadCategories() async {
-  try {
-    final headers = await authHeaders();
-    final response = await http.get(
-      Uri.parse('http://127.0.0.1:8000/api/categories'),
-      headers: headers,
-    );
 
-    if (response.statusCode != 200) {
-      debugPrint('Erreur catégories ${response.statusCode} : ${response.body}');
-      return;
+  Future<void> _loadCategories() async {
+    try {
+      final headers = await authHeaders();
+      final response = await http
+          .get(
+            Uri.parse('http://127.0.0.1:8000/api/categories'),
+            headers: headers,
+          )
+          .timeout(const Duration(seconds: 10));
+
+      if (response.statusCode != 200) {
+        debugPrint(
+          'Erreur catégories ${response.statusCode} : ${response.body}',
+        );
+        return;
+      }
+
+      final List<dynamic> data = jsonDecode(response.body);
+      if (!mounted) return;
+      setState(() {
+        _categories = data;
+      });
+    } catch (e) {
+      debugPrint('Impossible de charger les catégories : $e');
     }
-
-    final List<dynamic> data = jsonDecode(response.body);
-    if (!mounted) return;
-    setState(() {
-      _categories = data;
-    });
-  } catch (e) {
-    debugPrint('Impossible de charger les catégories : $e');
   }
-}
+
   Future<void> _save() async {
-  setState(() {
-    _isSaving = true;
-  });
-
-  try {
-    final expense = widget.expense;
-    final body = jsonEncode({
-      'category_id': _selectedCategoryId,
-      'amount': _amountController.text,
-      'description': _descriptionController.text,
-      'spent_at': expense?['spent_at'] ?? DateTime.now().toIso8601String(),
-    });
-    final headers = await authHeaders();
-
-    final http.Response response;
-    if (expense != null) {
-      response = await http.put(
-        Uri.parse('http://127.0.0.1:8000/api/expenses/${expense['id']}'),
-        headers: headers,
-        body: body,
-      );
-    } else {
-      response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/expenses'),
-        headers: headers,
-        body: body,
-      );
-    }
-
-    if (!mounted) return;
-
     setState(() {
-      _isSaving = false;
+      _isSaving = true;
     });
 
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _isEditing ? 'Dépense modifiée' : 'Dépense enregistrée',
+    try {
+      final expense = widget.expense;
+      final body = jsonEncode({
+        'category_id': _selectedCategoryId,
+        'amount': _amountController.text,
+        'description': _descriptionController.text,
+        'spent_at': expense?['spent_at'] ?? DateTime.now().toIso8601String(),
+      });
+      final headers = await authHeaders();
+
+      final http.Response response;
+      if (expense != null) {
+        response = await http
+            .put(
+              Uri.parse('http://127.0.0.1:8000/api/expenses/${expense['id']}'),
+              headers: headers,
+              body: body,
+            )
+            .timeout(const Duration(seconds: 10));
+      } else {
+        response = await http
+            .post(
+              Uri.parse('http://127.0.0.1:8000/api/expenses'),
+              headers: headers,
+              body: body,
+            )
+            .timeout(const Duration(seconds: 10));
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _isSaving = false;
+      });
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isEditing ? 'Dépense modifiée' : 'Dépense enregistrée',
+            ),
           ),
+        );
+        Navigator.pop(context);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erreur : vérifiez le montant')),
+        );
+        debugPrint('Erreur ${response.statusCode} : ${response.body}');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isSaving = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Serveur injoignable. Vérifiez que l'API est lancée."),
         ),
       );
-      Navigator.pop(context);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur : vérifiez le montant')),
-      );
-      debugPrint('Erreur ${response.statusCode} : ${response.body}');
     }
-  } catch (e) {
-    if (!mounted) return;
-    setState(() {
-      _isSaving = false;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Serveur injoignable. Vérifiez que l'API est lancée."),
-      ),
-    );
   }
-}
 
   @override
   Widget build(BuildContext context) {
